@@ -18,7 +18,10 @@ export default function Notification() {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  const pendingOrders = orders.filter((o) => o.status === "Preparing" || o.status === "Pending");
+  // Filter for Preparing/Pending orders
+  const pendingOrders = orders
+    .filter((o) => o.status === "Preparing" || o.status === "Pending")
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Newest first
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -28,7 +31,6 @@ export default function Notification() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Prevent background scrolling when notification is open on mobile
   useEffect(() => {
     if (open && window.innerWidth < 640) {
       document.body.style.overflow = 'hidden';
@@ -47,7 +49,6 @@ export default function Notification() {
         }`}
       >
         <Bell className={`w-6 h-6 ${open ? 'animate-none' : 'group-hover:rotate-12 transition-transform'}`} />
-        
         {pendingOrders.length > 0 && (
           <span className="absolute top-2 right-2 flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -60,7 +61,6 @@ export default function Notification() {
       <AnimatePresence>
         {open && (
           <>
-            {/* Mobile Overlay Backdrop */}
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -73,10 +73,7 @@ export default function Notification() {
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              /* Mobile: Fixed to bottom or top with nearly full width 
-                 Desktop: Absolute, right aligned, 400px width
-              */
-              className="fixed sm:absolute right-0 sm:right-0 left-4 sm:left-auto right-4 sm:mt-4 w-auto sm:w-[400px] top-20 sm:top-auto bg-white/95 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-200/50 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden z-50 origin-top-right"
+              className="fixed sm:absolute right-4 sm:right-0 left-4 sm:left-auto sm:mt-4 w-auto sm:w-[400px] top-20 sm:top-auto bg-white/95 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-200/50 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden z-50 origin-top-right"
             >
               {/* Header */}
               <div className="p-5 sm:p-6 pb-4 flex items-center justify-between bg-gradient-to-b from-slate-50/50 to-transparent">
@@ -139,8 +136,33 @@ export default function Notification() {
 }
 
 const NotificationItem = ({ order, idx, onClick }) => {
+  const [timeAgo, setTimeAgo] = useState("Just now");
   const total = order.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
   
+  // REAL-TIME UPDATE LOGIC
+  useEffect(() => {
+    const calculateTime = () => {
+      const now = new Date();
+      const created = new Date(order.createdAt);
+      const diffInSeconds = Math.floor((now - created) / 1000);
+      
+      if (diffInSeconds < 60) {
+        setTimeAgo("Just now");
+      } else if (diffInSeconds < 3600) {
+        const mins = Math.floor(diffInSeconds / 60);
+        setTimeAgo(`${mins}m ago`);
+      } else {
+        const hours = Math.floor(diffInSeconds / 3600);
+        setTimeAgo(`${hours}h ago`);
+      }
+    };
+
+    calculateTime(); // Initial call
+    const timer = setInterval(calculateTime, 30000); // Update every 30 seconds
+    
+    return () => clearInterval(timer);
+  }, [order.createdAt]);
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -159,7 +181,7 @@ const NotificationItem = ({ order, idx, onClick }) => {
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-[8px] sm:text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md uppercase tracking-tighter">New Order</span>
               <span className="text-[8px] sm:text-[10px] font-medium text-slate-400 flex items-center gap-1">
-                <Clock size={10} /> Just now
+                <Clock size={10} /> {timeAgo}
               </span>
             </div>
           </div>
@@ -168,10 +190,6 @@ const NotificationItem = ({ order, idx, onClick }) => {
           <p className="font-black text-slate-900 tracking-tight text-sm sm:text-base">₹{total}</p>
           <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest">{order.items.length} Items</p>
         </div>
-      </div>
-      
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 sm:group-hover:opacity-100 transition-all translate-x-4 sm:group-hover:translate-x-0 hidden sm:block">
-         <ArrowRight size={20} className="text-indigo-400" />
       </div>
     </motion.div>
   );
