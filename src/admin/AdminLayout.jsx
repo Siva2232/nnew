@@ -88,7 +88,7 @@ export default function AdminLayout() {
             <div className="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg shadow-slate-200">
               <Sparkles className="text-white w-6 h-6" />
             </div>
-            <span className="text-xl font-black tracking-tight text-slate-800">LUXE<span className="text-indigo-600">HUB</span></span>
+            <span className="text-xl font-black tracking-tight text-slate-800">My Cafe<span className="text-indigo-600"> Admin</span></span>
           </div>
           
           <button 
@@ -129,10 +129,10 @@ export default function AdminLayout() {
         {/* Sidebar Footer */}
         <div className="p-6 border-t border-slate-100">
           <div className={`bg-slate-50 rounded-2xl p-4 flex items-center gap-3 ${isCollapsed && 'lg:justify-center'}`}>
-            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">P</div>
+            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">B</div>
             {!isCollapsed && (
               <div className="overflow-hidden">
-                <p className="text-xs font-black text-slate-800 uppercase tracking-tighter">Pro Plan</p>
+                <p className="text-xs font-black text-slate-800 uppercase tracking-tighter">Base Plan</p>
                 <p className="text-[10px] text-slate-400 truncate">Unlimited Products</p>
               </div>
             )}

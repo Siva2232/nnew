@@ -5,7 +5,7 @@ export default function CustomerLayout() {
   return (
     <>
       {/* Navbar handles Menu, Cart, Order Summary */}
-      <Navbar title="AKSHAYUDE KADA" />
+      <Navbar title="MY CAFE" />
 
       <main className="pt-4">
         <Outlet />
