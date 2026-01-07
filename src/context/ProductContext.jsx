@@ -30,36 +30,11 @@ const MOCK_CATEGORIES = ["Starters", "Main Courses", "Desserts", "Beverages"];
 
 const getProducts = () => {
   let stored = JSON.parse(localStorage.getItem("products")) || [];
-  let merged = [...stored];
-  let changed = false;
-
-  const storedIds = new Set(stored.map((p) => p.id));
-
-  MOCK_PRODUCTS.forEach((mock) => {
-    if (storedIds.has(mock.id)) {
-      const index = merged.findIndex((p) => p.id === mock.id);
-      const current = merged[index];
-      // Updated check to include "type"
-      if (
-        current.name !== mock.name ||
-        current.price !== mock.price ||
-        current.type !== mock.type || 
-        current.category !== mock.category
-      ) {
-        merged[index] = { ...current, ...mock };
-        changed = true;
-      }
-    } else {
-      merged.push(mock);
-      changed = true;
-    }
-  });
-
-  if (changed) {
-    localStorage.setItem("products", JSON.stringify(merged));
-    window.dispatchEvent(new Event("storage"));
+  if (stored.length === 0) {
+    localStorage.setItem("products", JSON.stringify(MOCK_PRODUCTS));
+    return MOCK_PRODUCTS;
   }
-  return merged;
+  return stored;
 };
 
 const setProductsToStorage = (data) => {
@@ -70,16 +45,7 @@ const setProductsToStorage = (data) => {
 const getCategories = () => {
   const stored = JSON.parse(localStorage.getItem("categories")) || [];
   let merged = [...new Set([...stored, ...MOCK_CATEGORIES])];
-  const products = getProducts();
-  products.forEach((p) => {
-    if (p.category && !merged.includes(p.category)) merged.push(p.category);
-  });
   return merged.sort((a, b) => a.localeCompare(b));
-};
-
-const setCategoriesToStorage = (data) => {
-  localStorage.setItem("categories", JSON.stringify(data));
-  window.dispatchEvent(new Event("storage"));
 };
 
 const ProductContext = createContext();
@@ -105,13 +71,25 @@ export const ProductProvider = ({ children }) => {
   }, []);
 
   const addProduct = (product) => {
-    const updated = [...products, product];
+    const newProduct = {
+      ...product,
+      id: `PROD-${Date.now()}`, // Generate unique ID
+      available: true
+    };
+    const updated = [...products, newProduct];
     setProducts(updated);
     setProductsToStorage(updated);
   };
 
   const updateProduct = (id, data) => {
     const updated = products.map((p) => (p.id === id ? { ...p, ...data } : p));
+    setProducts(updated);
+    setProductsToStorage(updated);
+  };
+
+  // --- NEW DELETE FUNCTION ---
+  const deleteProduct = (id) => {
+    const updated = products.filter((p) => p.id !== id);
     setProducts(updated);
     setProductsToStorage(updated);
   };
@@ -123,7 +101,17 @@ export const ProductProvider = ({ children }) => {
   };
 
   return (
-    <ProductContext.Provider value={{ products, categories, orderedCategories, addProduct, updateProduct, toggleAvailability }}>
+    <ProductContext.Provider 
+      value={{ 
+        products, 
+        categories, 
+        orderedCategories, 
+        addProduct, 
+        updateProduct, 
+        deleteProduct, // Exporting delete
+        toggleAvailability 
+      }}
+    >
       {children}
     </ProductContext.Provider>
   );

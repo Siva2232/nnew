@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useOrders } from "../context/OrderContext";
 import {
   ShoppingBag, Activity, CheckCircle, Sparkles, Coffee,
-  Clock, Flame, BellRing, ChevronRight, MessageSquare, Timer
+  Clock, Flame, BellRing, ChevronRight, MessageSquare, Timer,
+  Users, DollarSign, UtensilsCrossed, PackageCheck
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const gradientMap = {
   Preparing: "from-amber-400 to-orange-500",
@@ -14,14 +16,106 @@ const gradientMap = {
 
 const statusStep = { Preparing: 1, Cooking: 2, Ready: 3, Served: 4 };
 
-const PremiumOrderCard = ({ order, updateOrderStatus, isCompleted = false }) => {
+export default function OrdersDashboard() {
+  const { orders, updateOrderStatus } = useOrders();
+
+  // DASHBOARD CALCULATIONS
+  const activeOrders = orders.filter((o) => o.status !== "Served").sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const servedOrders = orders.filter((o) => o.status === "Served").sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  
+  const totalRevenue = orders.reduce((acc, order) => {
+    return acc + order.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  }, 0);
+
+  const totalItemsSold = orders.reduce((acc, order) => {
+    return acc + order.items.reduce((sum, item) => sum + item.qty, 0);
+  }, 0);
+
+  // 6 STATS DATA
+  const stats = [
+    { label: "Revenue", value: `₹${totalRevenue.toLocaleString()}`, icon: DollarSign, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Live Tables", value: new Set(activeOrders.map(o => o.table)).size, icon: Users, color: "text-orange-600", bg: "bg-orange-50" },
+    { label: "Ready", value: orders.filter(o => o.status === "Ready").length, icon: BellRing, color: "text-indigo-600", bg: "bg-indigo-50" },
+    { label: "Total Served", value: servedOrders.length, icon: PackageCheck, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { label: "Items Sold", value: totalItemsSold, icon: UtensilsCrossed, color: "text-rose-600", bg: "bg-rose-50" },
+    { label: "Kitchen Load", value: activeOrders.length > 5 ? "High" : "Normal", icon: Activity, color: "text-slate-600", bg: "bg-slate-50" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#FDFDFD] p-4 sm:p-10 font-sans text-slate-900">
+      <div className="max-w-7xl mx-auto space-y-12">
+        
+        {/* HEADER & ANALYTICS */}
+        <header className="space-y-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+              <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase italic">Control <span className="text-orange-500">Center</span></h1>
+              <p className="text-slate-400 font-bold mt-2 uppercase tracking-[0.3em] text-[10px]">Real-time Operations & History</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {stats.map((stat, i) => (
+              <div key={i} className="bg-white border border-slate-100 p-5 rounded-[2rem] shadow-sm flex flex-col items-center text-center gap-3 transition-all hover:shadow-md">
+                <div className={`${stat.bg} ${stat.color} p-3 rounded-2xl`}><stat.icon size={20} /></div>
+                <div>
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                  <p className="text-xl font-black text-slate-800 italic">{stat.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </header>
+
+        {/* 1. LIVE ORDERS SECTION */}
+        <section className="space-y-8">
+          <div className="flex items-center gap-4">
+            <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+            <h2 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.4em]">Ongoing Preparations ({activeOrders.length})</h2>
+          </div>
+
+          {activeOrders.length === 0 ? (
+            <div className="py-20 text-center bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+               <Coffee size={48} className="mx-auto text-slate-200 mb-4" />
+               <p className="text-slate-400 font-black uppercase text-[10px] tracking-widest">Kitchen is currently clear</p>
+            </div>
+          ) : (
+            <div className="grid gap-8">
+              {activeOrders.map((order) => (
+                <PremiumOrderCard key={order.id} order={order} updateOrderStatus={updateOrderStatus} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* 2. HISTORY SECTION (Restored) */}
+        {servedOrders.length > 0 && (
+          <section className="space-y-8 pt-10 border-t border-slate-100">
+            <div className="flex items-center justify-center gap-4">
+              <div className="h-[1px] w-12 bg-slate-200" />
+              <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] italic">Recently Served</h2>
+              <div className="h-[1px] w-12 bg-slate-200" />
+            </div>
+            
+            <div className="grid gap-6 opacity-60 hover:opacity-100 transition-opacity duration-500 grayscale-[0.5] hover:grayscale-0">
+              {servedOrders.slice(0, 5).map((order) => (
+                <PremiumOrderCard key={order.id} order={order} updateOrderStatus={updateOrderStatus} isCompleted />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PremiumOrderCard({ order, updateOrderStatus, isCompleted }) {
   const [timeAgo, setTimeAgo] = useState("");
-  const total = order.items.reduce((acc, item) => acc + (item.price || 0) * (item.qty || 1), 0);
+  const total = order.items.reduce((acc, item) => acc + (item.price * item.qty), 0);
   const status = order.status;
   const currentStep = statusStep[status] || 1;
   const gradient = gradientMap[status] || "from-slate-400 to-slate-600";
 
-  // Real-time counter logic
   useEffect(() => {
     const update = () => {
       const diff = Math.floor((new Date() - new Date(order.createdAt)) / 60000);
@@ -33,173 +127,66 @@ const PremiumOrderCard = ({ order, updateOrderStatus, isCompleted = false }) => 
   }, [order.createdAt]);
 
   return (
-    <div className={`relative transition-all duration-500 ${isCompleted ? "opacity-75 scale-[0.98]" : "hover:-translate-y-1"}`}>
-      
-      {/* Background Glow Effect */}
-      <div className={`absolute inset-0 bg-gradient-to-r ${gradient} opacity-5 blur-2xl rounded-[2.5rem]`} />
-      
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
-        
-        {/* Top Progress Bar */}
+    <div className={`relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 shadow-sm transition-all ${isCompleted ? 'scale-[0.98]' : ''}`}>
+      {/* Top progress bar only for active items */}
+      {!isCompleted && (
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-50">
           <div 
-            className={`h-full bg-gradient-to-r ${gradient} transition-all duration-1000 ease-out`}
+            className={`h-full bg-gradient-to-r ${gradient} transition-all duration-1000`}
             style={{ width: `${(currentStep / 4) * 100}%` }}
           />
         </div>
+      )}
 
-        <div className="p-6 sm:p-8">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-            <div className="flex items-start gap-5">
-              <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white shadow-lg`}>
-                <span className="text-2xl font-black italic">{order.table}</span>
-              </div>
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Table {order.table}</h3>
-                <div className="flex items-center gap-3 mt-1 text-slate-400 font-bold text-[11px] uppercase tracking-widest">
-                  <span className="flex items-center gap-1"><Timer size={12}/> {timeAgo}</span>
-                  <span>•</span>
-                  <span>#{order.id.slice(-5)}</span>
-                </div>
-              </div>
+      <div className="p-6 md:p-8 flex flex-col md:flex-row gap-8">
+        <div className="flex-1 space-y-6">
+          <div className="flex items-center gap-5">
+            <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-black text-2xl italic shadow-lg`}>
+              {order.table}
             </div>
-
-            <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-100">
-               {["Preparing", "Cooking", "Ready", "Served"].map((s) => (
-                 <div 
-                   key={s}
-                   className={`h-2 w-8 rounded-full transition-all duration-500 ${
-                     statusStep[s] <= currentStep ? `bg-gradient-to-r ${gradientMap[s]}` : 'bg-slate-200'
-                   }`}
-                 />
-               ))}
-               <span className="ml-2 text-[10px] font-black uppercase text-slate-500 tracking-tighter pr-2">{status}</span>
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Table {order.table}</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Timer size={12}/> {timeAgo} • #{order.id.slice(-5)}
+              </p>
             </div>
           </div>
 
-          {/* Items Section */}
-          <div className="grid md:grid-cols-2 gap-8 items-start">
-            <div className="space-y-3">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Order Items</p>
-              {order.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center group/item">
-                  <div className="flex items-center gap-4">
-                    <span className="h-8 w-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-black italic">
-                      {item.qty}
-                    </span>
-                    <span className="font-bold text-slate-700">{item.name}</span>
-                  </div>
-                  <span className="text-slate-400 font-medium italic text-sm">₹{item.price * item.qty}</span>
+          <div className="space-y-3">
+            {order.items.map((item, idx) => (
+              <div key={idx} className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <span className="h-7 w-7 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black italic">{item.qty}</span>
+                  <span className="font-bold text-slate-700">{item.name}</span>
                 </div>
+                <span className="text-slate-400 font-bold italic text-sm">₹{item.price * item.qty}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Hide status control for completed items, or keep it for corrections */}
+        {!isCompleted && (
+          <div className="w-full md:w-64 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 text-center italic">Move Status</p>
+            <div className="flex flex-col gap-2">
+              {["Preparing", "Cooking", "Ready", "Served"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => updateOrderStatus(order.id, s)}
+                  className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${s === status ? 'bg-white text-slate-900 shadow-sm opacity-50' : 'bg-white text-slate-500 hover:bg-slate-900 hover:text-white border border-slate-100'}`}
+                >
+                  {s}
+                </button>
               ))}
-              
-              {/* Note highlight */}
-              {order.notes && (
-                <div className="mt-6 flex items-start gap-3 bg-orange-50 p-4 rounded-2xl border border-orange-100">
-                  <MessageSquare className="text-orange-500 shrink-0" size={18} />
-                  <p className="text-sm font-bold text-orange-700 italic">"{order.notes}"</p>
-                </div>
-              )}
             </div>
-
-            {/* Quick Action Controller */}
-            {!isCompleted && (
-              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 text-center">Move Status</p>
-                <div className="flex flex-col gap-2">
-                  {["Preparing", "Cooking", "Ready", "Served"].map((s) => {
-                    const isCurrent = s === status;
-                    const Icon = s === "Preparing" ? Clock : s === "Cooking" ? Flame : s === "Ready" ? BellRing : CheckCircle;
-                    
-                    return (
-                      <button
-                        key={s}
-                        onClick={() => updateOrderStatus(order.id, s)}
-                        className={`flex items-center justify-between px-5 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all ${
-                          isCurrent 
-                            ? "bg-white text-slate-900 shadow-sm border border-slate-200 opacity-50 cursor-not-allowed" 
-                            : "bg-white hover:bg-slate-900 hover:text-white text-slate-600 border border-slate-200 hover:border-slate-900 shadow-sm"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon size={16} className={isCurrent ? "text-slate-300" : "group-hover:text-white"} />
-                          {s}
-                        </div>
-                        {!isCurrent && <ChevronRight size={14} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
+        )}
 
-          <div className="mt-8 pt-6 border-t border-slate-50 flex justify-between items-center">
-             <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">Total Value</p>
-             <p className="text-3xl font-black text-slate-900 italic tracking-tighter leading-none">₹{total.toLocaleString()}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default function Orders() {
-  const { orders, updateOrderStatus } = useOrders();
-  const activeOrders = orders.filter((o) => o.status !== "Served").sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-  const completedOrders = orders.filter((o) => o.status === "Served");
-
-  return (
-    <div className="min-h-screen bg-[#FDFDFD] p-4 sm:p-10 font-sans">
-      <div className="max-w-6xl mx-auto space-y-16">
-        
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase italic">Kitchen <span className="text-orange-500">Live</span></h1>
-            <p className="text-slate-400 font-bold mt-2 uppercase tracking-[0.3em] text-[10px]">Management Portal • {activeOrders.length} Active</p>
-          </div>
-          <div className="flex gap-4">
-             <div className="bg-white border border-slate-100 px-6 py-3 rounded-2xl shadow-sm">
-                <p className="text-[9px] font-black text-slate-400 uppercase">Success Rate</p>
-                <p className="text-xl font-black text-emerald-500 italic">98%</p>
-             </div>
-          </div>
-        </div>
-
-        {orders.length === 0 ? (
-          <div className="py-32 text-center bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
-             <Coffee size={64} className="mx-auto text-slate-200 mb-6" />
-             <h3 className="text-2xl font-black text-slate-900 uppercase">Kitchen Quiet</h3>
-             <p className="text-slate-400 font-medium">New orders will appear here automatically.</p>
-          </div>
-        ) : (
-          <div className="grid gap-12">
-            {activeOrders.length > 0 && (
-              <div className="space-y-8">
-                <div className="flex items-center gap-4">
-                  <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-                  <h2 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.4em]">Ongoing Preparations</h2>
-                </div>
-                <div className="grid gap-8">
-                  {activeOrders.map((order) => (
-                    <PremiumOrderCard key={order.id} order={order} updateOrderStatus={updateOrderStatus} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {completedOrders.length > 0 && (
-              <div className="space-y-8 mt-12 opacity-60">
-                <h2 className="text-[12px] font-black text-slate-400 uppercase tracking-[0.4em] text-center">History (Last 24h)</h2>
-                <div className="grid gap-6">
-                  {completedOrders.slice(0, 5).map((order) => (
-                    <PremiumOrderCard key={order.id} order={order} updateOrderStatus={updateOrderStatus} isCompleted />
-                  ))}
-                </div>
-              </div>
-            )}
+        {isCompleted && (
+          <div className="flex flex-col justify-center items-center px-8 border-l border-slate-50 text-emerald-500">
+             <CheckCircle size={32} />
+             <span className="text-[10px] font-black uppercase mt-2">Served</span>
           </div>
         )}
       </div>
