@@ -1,26 +1,18 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { Plus, Minus, Check } from "lucide-react"; // Added for better UI
 
 /* ---------- Veg / Non-Veg Icon ---------- */
 function FoodTypeIcon({ type }) {
   const isVeg = type === "veg";
-
   return (
-    <div
-      className={`w-5 h-5 border-2 flex items-center justify-center rounded-sm
-        ${isVeg ? "border-green-600" : "border-red-600"}
-      `}
-    >
-      <div
-        className={`w-2.5 h-2.5 rounded-full
-          ${isVeg ? "bg-green-600" : "bg-red-600"}
-        `}
-      />
+    <div className={`w-5 h-5 border-2 flex items-center justify-center rounded-sm ${isVeg ? "border-green-600" : "border-red-600"}`}>
+      <div className={`w-2.5 h-2.5 rounded-full ${isVeg ? "bg-green-600" : "bg-red-600"}`} />
     </div>
   );
 }
 
-export default function ProductCard({ product, onAdd }) {
+export default function ProductCard({ product, onAdd, onRemove, initialQty = 0 }) {
   const {
     name,
     description,
@@ -30,38 +22,51 @@ export default function ProductCard({ product, onAdd }) {
     type = "veg",
   } = product;
 
-  const [added, setAdded] = useState(false);
+  // Track quantity locally for the UI transition
+  const [quantity, setQuantity] = useState(initialQty);
   const [showCheck, setShowCheck] = useState(false);
 
-  const handleAdd = (e) => {
+  const handleIncrement = (e) => {
     e.stopPropagation();
     if (!available) return;
 
-    setAdded(true);
-    setShowCheck(true);
-    onAdd();
-    setTimeout(() => setShowCheck(false), 800);
+    setQuantity(prev => prev + 1);
+    onAdd(product); // Existing logic to update global cart context
+    
+    // Show splash effect only on first add
+    if (quantity === 0) {
+      setShowCheck(true);
+      setTimeout(() => setShowCheck(false), 800);
+    }
+  };
+
+  const handleDecrement = (e) => {
+    e.stopPropagation();
+    if (quantity > 0) {
+      setQuantity(prev => prev - 1);
+      // Assuming you have a remove/update function in your context
+      if (onRemove) onRemove(product.id); 
+    }
   };
 
   return (
     <motion.div
-      className={`relative rounded-3xl overflow-hidden bg-white shadow-lg hover:shadow-xl transition-shadow duration-300`}
+      className="relative rounded-[2rem] overflow-hidden bg-white shadow-lg hover:shadow-xl transition-shadow duration-300"
       animate={available ? {} : { x: [0, -5, 5, -5, 5, 0] }}
       transition={{ duration: 0.6 }}
     >
       <div className="relative aspect-[4/5]">
-
         {/* Image */}
         <img
           src={image || "https://via.placeholder.com/600x800"}
           alt={name}
-          className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
-            !available ? "grayscale contrast-90" : ""
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${
+            !available ? "grayscale contrast-90" : "hover:scale-110"
           }`}
         />
 
         {/* Veg / Non-Veg Icon */}
-        <div className="absolute top-3 left-3 z-30 bg-white/90 backdrop-blur-md p-1 rounded-md shadow">
+        <div className="absolute top-4 left-4 z-30 bg-white/90 backdrop-blur-md p-1.5 rounded-xl shadow-sm">
           <FoodTypeIcon type={type} />
         </div>
 
@@ -72,92 +77,93 @@ export default function ProductCard({ product, onAdd }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/70 "
+              className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-900/70 backdrop-blur-[2px]"
             >
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ repeat: Infinity, duration: 1.2 }}
-                className="bg-gradient-to-r  px-8 py-4 rounded-full shadow-2xl text-white font-bold text-xl md:text-2xl text-center"
+                className="bg-white px-6 py-3 rounded-2xl shadow-2xl text-slate-900 font-black text-sm uppercase tracking-widest"
               >
-                Out of Stock
+                Sold Out
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Added Badge */}
-        <AnimatePresence>
-          {added && available && (
-            <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              className="absolute top-3 right-3 z-30"
-            >
-              <div className="bg-emerald-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-lg">
-                ✓
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Bottom Gradient */}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-5 pt-10">
-          <h3 className="text-white text-lg font-bold line-clamp-2">{name}</h3>
+        {/* Bottom Info Gradient */}
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent p-6 pt-20">
+          <h3 className="text-white text-lg font-black leading-tight tracking-tight line-clamp-1">{name}</h3>
 
           {description && (
-            <p className="text-white/80 text-xs mt-1 line-clamp-2">
+            <p className="text-slate-300/90 text-[10px] font-medium mt-1 line-clamp-2 leading-relaxed">
               {description}
             </p>
           )}
 
-          <div className="mt-4 flex items-center justify-between">
-            <span className="text-white text-2xl font-extrabold">
-              ₹{price}
-            </span>
+          <div className="mt-5 flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-white text-2xl font-black tracking-tighter">
+                ₹{price}
+              </span>
+            </div>
 
-            {/* Add Button */}
+            {/* --- SMART QUANTITY TOGGLE --- */}
             {available && (
-              <motion.button
-                onClick={handleAdd}
-                whileTap={{ scale: 0.85 }}
-                className="relative bg-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl overflow-hidden"
-              >
-                {/* Ripple */}
-                <AnimatePresence>
-                  {showCheck && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 2.5 }}
-                      exit={{ scale: 3, opacity: 0 }}
-                      transition={{ duration: 0.6 }}
-                      className="absolute inset-0 bg-green-400 rounded-full"
-                    />
-                  )}
-                </AnimatePresence>
-
-                {/* + → ✓ */}
+              <div className="relative flex items-center">
                 <AnimatePresence mode="wait">
-                  {showCheck ? (
-                    <motion.span
-                      key="check"
-                      initial={{ scale: 0, rotate: -90 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      exit={{ scale: 0 }}
-                      className="text-green-600 text-3xl font-bold z-10"
+                  {quantity === 0 ? (
+                    /* Initial Add Button */
+                    <motion.button
+                      key="add-btn"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      onClick={handleIncrement}
+                      whileTap={{ scale: 0.9 }}
+                      className="relative bg-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl overflow-hidden group"
                     >
-                      ✓
-                    </motion.span>
+                      <AnimatePresence>
+                        {showCheck && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 2.5 }}
+                            exit={{ scale: 3, opacity: 0 }}
+                            className="absolute inset-0 bg-emerald-400 rounded-full"
+                          />
+                        )}
+                      </AnimatePresence>
+                      <Plus className="text-emerald-600 w-6 h-6 font-bold z-10 group-hover:rotate-90 transition-transform" />
+                    </motion.button>
                   ) : (
-                    <motion.span
-                      key="plus"
-                      className="text-green-600 text-3xl font-bold z-10"
+                    /* - QTY + Selector */
+                    <motion.div
+                      key="qty-selector"
+                      initial={{ width: 48, opacity: 0 }}
+                      animate={{ width: 110, opacity: 1 }}
+                      exit={{ width: 48, opacity: 0 }}
+                      className="bg-white h-12 rounded-2xl flex items-center justify-between px-1 shadow-2xl border border-white/20"
                     >
-                      +
-                    </motion.span>
+                      <button
+                        onClick={handleDecrement}
+                        className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors"
+                      >
+                        <Minus size={18} strokeWidth={3} />
+                      </button>
+                      
+                      <span className="text-slate-900 font-black text-sm w-4 text-center">
+                        {quantity}
+                      </span>
+
+                      <button
+                        onClick={handleIncrement}
+                        className="w-9 h-9 flex items-center justify-center text-emerald-600"
+                      >
+                        <Plus size={18} strokeWidth={3} />
+                      </button>
+                    </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.button>
+              </div>
             )}
           </div>
         </div>

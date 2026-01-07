@@ -139,7 +139,7 @@ export default function Navbar({ title }) {
       </nav>
 
       {/* Spacing for mobile fixed bottom nav */}
-      <div className="md:hidden h-24" />
+      {/* <div className="md:hidden h-24" /> */}
     </>
   );
 }

@@ -220,7 +220,7 @@ const EmptyStateSection = ({ count }) => (
         transition={{ repeat: Infinity, duration: 4 }}
         className="absolute inset-0 bg-emerald-500 blur-[60px] opacity-10" 
       />
-      <div className="relative h-24 w-24 rounded-[2rem] bg-emerald-50 flex items-center justify-center mx-auto text-emerald-500 border border-emerald-100 shadow-xl shadow-emerald-100">
+      <div className="relative  w-24 rounded-[2rem] bg-emerald-50 flex items-center justify-center mx-auto text-emerald-500 border border-emerald-100 shadow-xl shadow-emerald-100">
         <CheckCircle size={48} strokeWidth={1.5} />
       </div>
     </div>

@@ -10,19 +10,19 @@ import {
   X,
   ShoppingCart,
   Utensils,
-  Sparkles,
-  ChevronRight,
   ArrowRight,
+  Filter,
 } from "lucide-react";
 
 export default function Menu() {
-  const { products } = useProducts();
-  const { addToCart, cart = [], table, setTable } = useCart();
+  const { products, orderedCategories } = useProducts();
+  const { addToCart, removeFromCart, cart = [], table, setTable } = useCart();
   const [searchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [slide, setSlide] = useState(0);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [foodTypeFilter, setFoodTypeFilter] = useState("all"); // all, veg, non-veg
   const sectionRefs = useRef({});
   const [showLoader, setShowLoader] = useState(false);
 
@@ -38,12 +38,13 @@ export default function Menu() {
       subtitle: "Farm to Fork, Every Single Day",
     },
     {
-       img: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1600&q=80",
-       title: "Chef's Special",
-       subtitle: "Handcrafted Culinary Masterpieces",
+      img: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1600&q=80",
+      title: "Chef's Special",
+      subtitle: "Handcrafted Culinary Masterpieces",
     }
   ];
 
+  // Auto-slide effect
   useEffect(() => {
     const timer = setInterval(() => {
       setSlide((prev) => (prev + 1) % slides.length);
@@ -51,21 +52,19 @@ export default function Menu() {
     return () => clearInterval(timer);
   }, [slides.length]);
 
+  // Handle Table Params
   useEffect(() => {
     const t = searchParams.get("table");
     if (t) setTable(t);
   }, [searchParams, setTable]);
 
-  const categories = useMemo(() => {
-    const cats = products.map((p) => p.category || "Other");
-    return ["All", ...new Set(cats)];
-  }, [products]);
-
+  // Cart quantity calculation
   const totalItems = cart.reduce(
     (sum, item) => sum + (item.qty || item.quantity || 1),
     0
   );
 
+  // Search Suggestions
   const suggestions = useMemo(() => {
     const trimmed = searchQuery.trim();
     if (trimmed.length < 2) return [];
@@ -75,6 +74,7 @@ export default function Menu() {
       .slice(0, 6);
   }, [products, searchQuery]);
 
+  // Loader Logic
   useEffect(() => {
     const hasShown = sessionStorage.getItem("menuLoaderShown");
     if (!hasShown) {
@@ -95,8 +95,7 @@ export default function Menu() {
 
       {!showLoader && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col flex-1">
-          {/* --- ULTRA MODERN HEADER --- */}
-          <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-100 shadow-sm h2">
+          <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-100 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -117,7 +116,6 @@ export default function Menu() {
                 )}
               </div>
 
-              {/* Enhanced Search */}
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                   <Search size={18} strokeWidth={2.5} />
@@ -125,6 +123,8 @@ export default function Menu() {
                 <input
                   type="text"
                   value={searchQuery}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="What are you craving?"
                   className="w-full pl-12 pr-12 py-3.5 rounded-2xl bg-slate-100/50 border-none text-sm font-semibold focus:ring-2 focus:ring-slate-900/10 transition-all placeholder:text-slate-400"
@@ -134,19 +134,71 @@ export default function Menu() {
                     <X size={18} strokeWidth={2.5} />
                   </button>
                 )}
+
+                <AnimatePresence>
+                  {isSearchFocused && suggestions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-[60]"
+                    >
+                      {suggestions.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            setSearchQuery(p.name);
+                            setIsSearchFocused(false);
+                          }}
+                          className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-none"
+                        >
+                          <div className="flex items-center gap-3">
+                            <img src={p.image} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                            <div className="text-left">
+                              <p className="text-sm font-bold text-slate-900">{p.name}</p>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase">{p.category}</p>
+                            </div>
+                          </div>
+                          <p className="text-xs font-black text-slate-900">₹{p.price}</p>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
-            {/* Premium Category Bar */}
+            {/* Filter Bar: Veg/Non-Veg + Categories */}
             <div className="border-t border-slate-50 py-3 bg-white/50">
-              <div className="max-w-7xl mx-auto px-4 overflow-x-auto no-scrollbar">
-                <div className="flex gap-2">
-                  {categories.map((cat) => (
+              <div className="max-w-7xl mx-auto px-4 flex items-center gap-4">
+                {/* Veg / Non-Veg Toggle */}
+                <div className="flex bg-slate-100 p-1 rounded-full border border-slate-200 shrink-0">
+                  {['all', 'veg', 'non-veg'].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setFoodTypeFilter(type)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-tighter transition-all ${
+                        foodTypeFilter === type 
+                        ? "bg-white text-slate-900 shadow-sm" 
+                        : "text-slate-400 hover:text-slate-600"
+                      }`}
+                    >
+                      {type === 'veg' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                      {type === 'non-veg' && <div className="w-1.5 h-1.5 rounded-full bg-red-500" />}
+                      {type === 'all' ? 'All' : type}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="h-6 w-[1px] bg-slate-200 shrink-0" />
+
+                {/* Categories */}
+                <div className="overflow-x-auto no-scrollbar flex gap-2">
+                  {orderedCategories.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => {
-                        if (cat === "All") window.scrollTo({ top: 0, behavior: "smooth" });
-                        else sectionRefs.current[cat]?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        sectionRefs.current[cat]?.scrollIntoView({ behavior: "smooth", block: "start" });
                       }}
                       className="px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all border border-slate-100 bg-white text-slate-500 hover:border-slate-900 hover:text-slate-900 active:scale-95 shadow-sm"
                     >
@@ -158,7 +210,7 @@ export default function Menu() {
             </div>
           </header>
 
-          {/* --- CINEMATIC HERO --- */}
+          {/* Banner Hero */}
           {!searchQuery && (
             <div className="relative h-[45vh] overflow-hidden">
               <div className="absolute inset-0 flex transition-transform duration-1000 ease-in-out" style={{ transform: `translateX(-${slide * 100}%)` }}>
@@ -177,23 +229,29 @@ export default function Menu() {
             </div>
           )}
 
-          {/* --- MENU LIST --- */}
+          {/* Main Menu Grid */}
           <main className="max-w-7xl mx-auto w-full px-4 py-12 pb-40">
             {(() => {
               const q = searchQuery.toLowerCase().trim();
-              const catList = categories.filter((c) => c !== "All").sort();
-              const sections = [];
               let foundMatch = false;
 
-              catList.forEach((cat) => {
-                const filtered = products.filter((p) => 
-                    ((p.category || "Other") === cat) && 
-                    (p.name?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q))
-                );
+              const renderedSections = orderedCategories.map((cat) => {
+                const filtered = products.filter((p) => {
+                  const matchesSearch = (p.name?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q));
+                  const matchesCategory = (p.category || "Other") === cat;
+                  
+                  // Strict type filtering
+                  let matchesFoodType = true;
+                  const pType = (p.type || "").toLowerCase();
+                  if (foodTypeFilter === "veg") matchesFoodType = pType === "veg";
+                  if (foodTypeFilter === "non-veg") matchesFoodType = pType === "non-veg";
+
+                  return matchesSearch && matchesCategory && matchesFoodType;
+                });
 
                 if (filtered.length > 0) {
                   foundMatch = true;
-                  sections.push(
+                  return (
                     <section key={cat} ref={(el) => (sectionRefs.current[cat] = el)} className="mb-20 scroll-mt-48">
                       <div className="flex items-end justify-between mb-8 border-b-2 border-slate-900/5 pb-4">
                         <div className="flex flex-col">
@@ -209,11 +267,14 @@ export default function Menu() {
                             key={product.id}
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
                             transition={{ delay: idx * 0.05 }}
                           >
                             <ProductCard 
                                 product={product} 
+                                initialQty={cart.find(i => i.id === product.id)?.qty || 0}
                                 onAdd={() => product.available !== false && addToCart(product)} 
+                                onRemove={() => removeFromCart(product.id)}
                             />
                           </motion.div>
                         ))}
@@ -221,48 +282,72 @@ export default function Menu() {
                     </section>
                   );
                 }
+                return null;
               });
 
               if (!foundMatch) {
                 return (
                   <div className="flex flex-col items-center justify-center py-20">
                     <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                      <Search className="text-slate-300" size={32} />
+                      <Filter className="text-slate-300" size={32} />
                     </div>
                     <h3 className="text-xl font-black text-slate-900 uppercase">No Dishes Found</h3>
-                    <p className="text-slate-400 text-sm mt-1">Try a different keyword or category.</p>
+                    <p className="text-slate-400 text-sm mt-1">Try resetting filters or changing your search.</p>
+                    <button 
+                      onClick={() => {setSearchQuery(""); setFoodTypeFilter("all");}}
+                      className="mt-6 text-xs font-black uppercase text-orange-500 underline"
+                    >
+                      Reset All
+                    </button>
                   </div>
                 );
               }
-              return sections;
+              return renderedSections;
             })()}
           </main>
 
-          {/* --- FLOATING CART --- */}
+          {/* Floating Cart Button */}
           <AnimatePresence>
-            {totalItems > 0 && (
-              <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="fixed bottom-6 inset-x-4 z-50 flex justify-center pointer-events-none">
-                <Link to={`/cart${table ? `?table=${table}` : ""}`} className="pointer-events-auto group">
-                  <div className="bg-slate-950 text-white px-8 py-4 rounded-[2rem] flex items-center gap-8 shadow-2xl transition-all hover:scale-[1.02] active:scale-95">
-                    <div className="flex items-center gap-4">
-                        <div className="relative">
-                            <ShoppingCart size={24} />
-                            <span className="absolute -top-3 -right-3 bg-orange-500 text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-slate-950">
-                                {totalItems}
-                            </span>
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">Items Added</p>
-                            <p className="text-sm font-bold leading-none italic">View Selection</p>
-                        </div>
-                    </div>
-                    <div className="w-[1px] h-8 bg-slate-800" />
-                    <ArrowRight className="group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </Link>
-              </motion.div>
-            )}
-          </AnimatePresence>
+  {totalItems > 0 && (
+    <motion.div
+      initial={{ y: 100 }}
+      animate={{ y: 0 }}
+      exit={{ y: 100 }}
+      className="
+        fixed bottom-6 inset-x-4 z-50 flex justify-center
+        pointer-events-none
+        mb-19 sm:mb-0
+      "
+    >
+      <Link
+        to={`/cart${table ? `?table=${table}` : ""}`}
+        className="pointer-events-auto group"
+      >
+        <div className="bg-slate-950 text-white px-8 py-4 rounded-[2rem] flex items-center gap-8 shadow-2xl transition-all hover:scale-[1.02] active:scale-95">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <ShoppingCart size={24} />
+              <span className="absolute -top-3 -right-3 bg-orange-500 text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-slate-950">
+                {totalItems}
+              </span>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">
+                Items Added
+              </p>
+              <p className="text-sm font-bold leading-none italic">
+                View Selection
+              </p>
+            </div>
+          </div>
+          <div className="w-[1px] h-8 bg-slate-800" />
+          <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+        </div>
+      </Link>
+    </motion.div>
+  )}
+</AnimatePresence>
+
         </motion.div>
       )}
     </div>
