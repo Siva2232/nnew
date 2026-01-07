@@ -1,59 +1,46 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { Utensils, ShoppingCart, Receipt, Sparkles, ChefHat } from "lucide-react";
+import { motion } from "framer-motion";
+import { Utensils, ShoppingCart, Receipt, ChefHat, Sparkles } from "lucide-react";
 
 export default function Navbar({ title }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   const links = [
-    { path: "/menu", label: "Menu", icon: Utensils, color: "from-orange-500 to-red-500" },
-    { path: "/cart", label: "Cart", icon: ShoppingCart, color: "from-blue-500 to-indigo-500" },
-    { path: "/order-summary", label: "Orders", icon: Receipt, color: "from-emerald-500 to-teal-500" },
+    { path: "/menu", label: "Menu", icon: Utensils },
+    { path: "/cart", label: "Cart", icon: ShoppingCart },
+    { path: "/order-summary", label: "Orders", icon: Receipt },
   ];
 
   const isActive = (path) => location.pathname.startsWith(path);
 
   return (
     <>
-      {/* Desktop: Refined Glassmorphism */}
+      {/* --- DESKTOP NAVBAR (Unchanged) --- */}
       <nav className="hidden md:block sticky top-0 z-50 backdrop-blur-xl bg-white/70 border-b border-slate-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-8 py-3">
           <div className="flex items-center justify-between">
-            {/* Brand Identity */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-3 group cursor-pointer"
               onClick={() => navigate("/menu")}
             >
-              <div className="relative">
-                <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform">
-                  <ChefHat className="w-6 h-6 text-white" strokeWidth={2.5} />
-                </div>
-                <motion.div
-                  className="absolute -top-1 -right-1"
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                >
-                  <Sparkles className="w-4 h-4 text-orange-500" fill="currentColor" />
-                </motion.div>
+              <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform">
+                <ChefHat className="w-6 h-6 text-white" strokeWidth={2.5} />
               </div>
-
               <div>
                 <h1 className="text-xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-                  {title || "Delicio"}
+                  {title || "MY CAFE"}
                 </h1>
                 <p className="text-[10px] font-bold text-slate-400 tracking-[0.2em] mt-1 italic">PREMIUM DINING</p>
               </div>
             </motion.div>
 
-            {/* Nav Links */}
             <div className="flex items-center gap-1 bg-slate-100/50 p-1.5 rounded-[1.5rem] border border-slate-200/50">
               {links.map((link) => {
                 const active = isActive(link.path);
                 const Icon = link.icon;
-
                 return (
                   <button
                     key={link.path}
@@ -64,11 +51,10 @@ export default function Navbar({ title }) {
                   >
                     <Icon size={18} strokeWidth={active ? 2.5 : 2} className="relative z-10" />
                     <span className="text-sm font-black uppercase tracking-widest relative z-10">{link.label}</span>
-                    
                     {active && (
                       <motion.div
                         layoutId="activeTab"
-                        className={`absolute inset-0 bg-slate-900 rounded-[1.2rem] shadow-lg shadow-slate-200`}
+                        className="absolute inset-0 bg-slate-900 rounded-[1.2rem] shadow-lg"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
                     )}
@@ -80,26 +66,22 @@ export default function Navbar({ title }) {
         </div>
       </nav>
 
-      {/* Mobile Top Bar: Minimalist */}
+      {/* --- MOBILE TOP BAR --- */}
       <div className="md:hidden sticky top-0 z-50 backdrop-blur-lg bg-white/80 border-b border-slate-100 flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3" onClick={() => navigate("/menu")}>
           <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-md">
             <ChefHat className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-lg font-black text-slate-900 tracking-tighter uppercase">{title || "Delicio"}</h1>
+          <h1 className="text-lg font-black text-slate-900 tracking-tighter uppercase">{title || "MY CAFE"}</h1>
         </div>
-        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+        <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation: The "Floating Capsule" */}
-      <nav className="md:hidden fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 pointer-events-none">
-        <motion.div 
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="bg-white/90 backdrop-blur-2xl border border-slate-200/50 h-16 rounded-[2rem] shadow-2xl flex items-center justify-around w-full max-w-sm px-2 pointer-events-auto ring-1 ring-black/5"
-        >
+      {/* --- MOBILE BOTTOM NAVIGATION (TOUCHING BOTTOM) --- */}
+      <nav className="md:hidden fixed inset-x-0 bottom-0 z-50 bg-white border-t border-slate-100 pb-safe">
+        <div className="flex items-center justify-around h-20 px-4">
           {links.map((link) => {
             const active = isActive(link.path);
             const Icon = link.icon;
@@ -108,38 +90,45 @@ export default function Navbar({ title }) {
               <button
                 key={link.path}
                 onClick={() => navigate(link.path)}
-                className="relative flex flex-col items-center justify-center w-16 h-12 rounded-2xl transition-all"
+                className="relative flex flex-col items-center justify-center w-full h-full"
               >
-                <div className={`relative z-10 transition-transform duration-300 ${active ? "-translate-y-1 scale-110" : "text-slate-400"}`}>
+                <div className={`relative z-10 flex flex-col items-center transition-all duration-300 ${
+                  active ? "text-slate-900 scale-110" : "text-slate-400"
+                }`}>
                   <Icon 
-                    size={22} 
+                    size={24} 
                     strokeWidth={active ? 2.5 : 2} 
-                    className={active ? "text-slate-900" : ""}
                   />
-                  {active && (
-                    <motion.div 
-                        layoutId="dot" 
-                        className="w-1 h-1 bg-orange-500 rounded-full mx-auto mt-1"
-                    />
-                  )}
+                  <span className={`text-[10px] font-black uppercase tracking-widest mt-1 transition-opacity ${
+                    active ? "opacity-100" : "opacity-0"
+                  }`}>
+                    {link.label}
+                  </span>
                 </div>
-                
-                {/* Active Indicator Highlight */}
+
+                {/* Smooth Background Indicator */}
                 {active && (
                   <motion.div
-                    layoutId="mobileActive"
-                    className="absolute inset-x-1 inset-y-1 bg-slate-100 rounded-2xl -z-0"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    layoutId="mobileActiveBG"
+                    className="absolute inset-x-2 inset-y-2 bg-slate-50 rounded-2xl -z-0"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                  />
+                )}
+                
+                {/* Top Active Bar Accent */}
+                {active && (
+                  <motion.div
+                    layoutId="topBar"
+                    className="absolute top-0 w-12 h-1 bg-slate-900 rounded-b-full"
                   />
                 )}
               </button>
             );
           })}
-        </motion.div>
+        </div>
       </nav>
 
-      {/* Spacing for mobile fixed bottom nav */}
-      {/* <div className="md:hidden h-24" /> */}
+      {/* Space at the end of the page so content isn't hidden by the nav */}
     </>
   );
 }

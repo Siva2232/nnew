@@ -230,7 +230,8 @@ export default function Menu() {
           )}
 
           {/* Main Menu Grid */}
-          <main className="max-w-7xl mx-auto w-full px-4 py-12 pb-40">
+          <main className="max-w-7xl mx-auto w-full px-4 py-12"> 
+            {/* remove padding 40 */}
             {(() => {
               const q = searchQuery.toLowerCase().trim();
               let foundMatch = false;
