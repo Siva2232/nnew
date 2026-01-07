@@ -42,10 +42,17 @@ const setProductsToStorage = (data) => {
   window.dispatchEvent(new Event("storage"));
 };
 
+// --- HELPER TO SAVE CATEGORIES ---
+const setCategoriesToStorage = (data) => {
+  localStorage.setItem("categories", JSON.stringify(data));
+  window.dispatchEvent(new Event("storage"));
+};
+
 const getCategories = () => {
   const stored = JSON.parse(localStorage.getItem("categories")) || [];
-  let merged = [...new Set([...stored, ...MOCK_CATEGORIES])];
-  return merged.sort((a, b) => a.localeCompare(b));
+  // Merge stored with mocks to ensure defaults always exist
+  let merged = [...new Set([...MOCK_CATEGORIES, ...stored])];
+  return merged;
 };
 
 const ProductContext = createContext();
@@ -73,12 +80,21 @@ export const ProductProvider = ({ children }) => {
   const addProduct = (product) => {
     const newProduct = {
       ...product,
-      id: `PROD-${Date.now()}`, // Generate unique ID
+      id: `PROD-${Date.now()}`,
       available: true
     };
     const updated = [...products, newProduct];
     setProducts(updated);
     setProductsToStorage(updated);
+  };
+
+  // --- NEW: ADD CATEGORY FUNCTION ---
+  const addCategory = (categoryName) => {
+    if (!categories.includes(categoryName)) {
+      const updated = [...categories, categoryName];
+      setCategories(updated);
+      setCategoriesToStorage(updated); // Saves to LocalStorage
+    }
   };
 
   const updateProduct = (id, data) => {
@@ -87,7 +103,6 @@ export const ProductProvider = ({ children }) => {
     setProductsToStorage(updated);
   };
 
-  // --- NEW DELETE FUNCTION ---
   const deleteProduct = (id) => {
     const updated = products.filter((p) => p.id !== id);
     setProducts(updated);
@@ -107,8 +122,9 @@ export const ProductProvider = ({ children }) => {
         categories, 
         orderedCategories, 
         addProduct, 
+        addCategory, // ✅ WAS MISSING: Now exported to components
         updateProduct, 
-        deleteProduct, // Exporting delete
+        deleteProduct, 
         toggleAvailability 
       }}
     >
