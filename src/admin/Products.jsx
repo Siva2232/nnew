@@ -111,7 +111,7 @@ function ProductCard({ product, onToggle, onDelete, onEdit }) {
             ? "bg-emerald-500 text-white border-emerald-400" 
             : "bg-slate-900 text-white border-slate-700"
           }`}>
-            {product.available ? "Active" : "Hidden"}
+            {product.available ? "In Stock" : "Out of Stock"}
           </span>
         </div>
       </div>
@@ -140,7 +140,7 @@ function ProductCard({ product, onToggle, onDelete, onEdit }) {
                 : "bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white"
               }`}
             >
-              {product.available ? "Set as Out of Stock" : "Activate Item"}
+              {product.available ? "Set as Out of Stock" : "Set as In Stock"}
             </button>
             
             {/* Secondary Actions */}
